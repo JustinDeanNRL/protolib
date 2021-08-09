@@ -342,7 +342,7 @@ bool ProtoZmq::Socket::Send(char* buffer, unsigned int& numBytes)
 }  // end ProtoZmq::Socket::Send()
 
 
-bool ProtoZmq::Socket::SendToGroup(char* buffer, unsigned int& numBytes,const char* group)
+bool ProtoZmq::Socket::SendToGroup(const char* buffer, unsigned int& numBytes,const char* group)
 {
     // TBD - support both blocking and non-blocking operation as well as multi-part messages
     zmq_msg_t msg;
