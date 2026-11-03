@@ -1622,6 +1622,242 @@ bool ProtoAddress::ResolveLocalAddress(char* buffer, unsigned int buflen)
     }
 }  // end ProtoAddress::ResolveLocalAddress()
 
+ProtoNetworkAddress::ProtoNetworkAddress()
+    : ProtoAddress(),
+      prefix_mask_length(0),
+      has_prefix_mask(false)
+{
+}
+
+ProtoNetworkAddress::ProtoNetworkAddress(
+    const ProtoAddress& theAddress)
+    : ProtoAddress(theAddress),
+      prefix_mask_length(0),
+      has_prefix_mask(false)
+{
+}
+
+ProtoNetworkAddress::ProtoNetworkAddress(
+    const ProtoNetworkAddress& theAddress)
+    : ProtoAddress(theAddress),
+      prefix_mask_length(theAddress.prefix_mask_length),
+      has_prefix_mask(theAddress.has_prefix_mask)
+{
+}
+
+ProtoNetworkAddress::ProtoNetworkAddress(
+    const char* theAddress)
+    : ProtoAddress(theAddress),
+      prefix_mask_length(0),
+      has_prefix_mask(false)
+{
+}
+
+ProtoNetworkAddress&
+ProtoNetworkAddress::operator=(
+    const ProtoNetworkAddress& theAddress)
+{
+    if (this != &theAddress)
+    {
+        ProtoAddress::operator=(theAddress);
+
+        prefix_mask_length = theAddress.prefix_mask_length;
+        has_prefix_mask = theAddress.has_prefix_mask;
+    }
+
+    return *this;
+}
+
+ProtoNetworkAddress&
+ProtoNetworkAddress::operator=(
+    const ProtoAddress& theAddress)
+{
+    ProtoAddress::operator=(theAddress);
+
+    ClearPrefixMask();
+
+    return *this;
+}
+
+bool
+ProtoNetworkAddress::HasPrefixMask() const
+{
+    return has_prefix_mask;
+}
+
+bool
+ProtoNetworkAddress::SetPrefixMaskLength(
+    UINT8 thePrefixMaskLength)
+{
+    if (!IsValid())
+    {
+        return false;
+    }
+
+    UINT8 maximumPrefixMaskLength = GetLength() << 3;
+
+    if (thePrefixMaskLength > maximumPrefixMaskLength)
+    {
+        return false;
+    }
+
+    prefix_mask_length = thePrefixMaskLength;
+    has_prefix_mask = true;
+
+    return true;
+}
+
+UINT8
+ProtoNetworkAddress::GetPrefixMaskLength() const
+{
+    return prefix_mask_length;
+}
+
+void
+ProtoNetworkAddress::ClearPrefixMask()
+{
+    prefix_mask_length = 0;
+    has_prefix_mask = false;
+}
+void
+ProtoNetworkAddress::Invalidate()
+{
+    ProtoAddress::Invalidate();
+
+    ClearPrefixMask();
+}
+
+void
+ProtoNetworkAddress::Reset(ProtoAddress::Type theType,
+                           bool zero)
+{
+    ProtoAddress::Reset(theType, zero);
+
+    ClearPrefixMask();
+}
+
+bool
+ProtoNetworkAddress::SetRawHostAddress(
+    ProtoAddress::Type theType,
+    const char* buffer,
+    UINT8 bufferLength)
+{
+    ClearPrefixMask();
+
+    return ProtoAddress::SetRawHostAddress(theType,
+                                           buffer,
+                                           bufferLength);
+}
+
+bool
+ProtoNetworkAddress::SetSockAddr(
+    const struct sockaddr& theAddress)
+{
+    ClearPrefixMask();
+
+    return ProtoAddress::SetSockAddr(theAddress);
+}
+
+bool
+ProtoNetworkAddress::ResolveFromString(
+    const char* text)
+{
+    ClearPrefixMask();
+
+    return ProtoAddress::ResolveFromString(text);
+}
+
+bool
+ProtoNetworkAddress::ConvertFromString(
+    const char* text)
+{
+    if ((text == NULL) || ('\0' == text[0]))
+    {
+        Invalidate();
+        return false;
+    }
+
+    ClearPrefixMask();
+
+    const char* slashPtr = strchr(text, '/');
+
+    if (slashPtr == NULL)
+    {
+        return ProtoAddress::ConvertFromString(text);
+    }
+
+    if (strchr(slashPtr + 1, '/') != NULL)
+    {
+        Invalidate();
+        return false;
+    }
+
+    unsigned int hostLength = slashPtr - text;
+
+    if ((0 == hostLength) || ('\0' == *(slashPtr + 1)))
+    {
+        Invalidate();
+        return false;
+    }
+
+    char hostText[256];
+
+    if (hostLength >= sizeof(hostText))
+    {
+        Invalidate();
+        return false;
+    }
+
+    memcpy(hostText, text, hostLength);
+    hostText[hostLength] = '\0';
+
+    unsigned int prefixMaskLength = 0;
+    const char* prefixText = slashPtr + 1;
+
+    while ('\0' != *prefixText)
+    {
+        if ((*prefixText < '0') || (*prefixText > '9'))
+        {
+            Invalidate();
+            return false;
+        }
+
+        prefixMaskLength =
+            (prefixMaskLength * 10) + (*prefixText - '0');
+
+        if (prefixMaskLength > 255)
+        {
+            Invalidate();
+            return false;
+        }
+
+        ++prefixText;
+    }
+
+    if (!ProtoAddress::ConvertFromString(hostText))
+    {
+        Invalidate();
+        return false;
+    }
+
+    if (!SetPrefixMaskLength(
+            static_cast<UINT8>(prefixMaskLength)))
+    {
+        Invalidate();
+        return false;
+    }
+
+    return true;
+}
+
+bool
+ProtoNetworkAddress::ResolveEthFromString(
+    const char* text)
+{
+    ClearPrefixMask();
+
+    return ProtoAddress::ResolveEthFromString(text);
+}
 
 ProtoAddressList::ProtoAddressList()
 {

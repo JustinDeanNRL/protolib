@@ -259,6 +259,50 @@ class ProtoAddress
 #endif // if/else SIMULATE
 };  // end class ProtoAddress
 
+class ProtoNetworkAddress : public ProtoAddress
+{
+public:
+    ProtoNetworkAddress();
+
+    ProtoNetworkAddress(const ProtoAddress& theAddress);
+
+    ProtoNetworkAddress(const ProtoNetworkAddress& theAddress);
+
+    ProtoNetworkAddress(const char* theAddress);
+
+    ProtoNetworkAddress& operator=(const ProtoNetworkAddress& theAddress);
+
+    ProtoNetworkAddress& operator=(const ProtoAddress& theAddress);
+
+    bool HasPrefixMask() const;
+
+    bool SetPrefixMaskLength(UINT8 thePrefixMaskLength);
+
+    UINT8 GetPrefixMaskLength() const;
+
+    void ClearPrefixMask();
+
+    //hidden overrides
+    void Invalidate();
+
+    void Reset(ProtoAddress::Type theType, bool zero = true);
+
+    bool SetRawHostAddress(ProtoAddress::Type theType,
+                       const char* buffer,
+                       UINT8 bufferLength);
+
+    bool SetSockAddr(const struct sockaddr& theAddress);
+
+    bool ResolveFromString(const char* text);
+
+    bool ConvertFromString(const char* text);
+
+    bool ResolveEthFromString(const char* text);
+
+private:
+    UINT8 prefix_mask_length;
+    bool  has_prefix_mask;
+};
 
 /**
  * @class ProtoAddressList
